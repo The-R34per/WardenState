@@ -1,7 +1,9 @@
 ## WardenState
 ---
+
 WardenState is a lightweight, cross‑platform Python utility designed to monitor and report key system information on both Windows and macOS.
 It provides a simple, script‑based way to gather machine state data for diagnostics, automation workflows, or system‑health reporting.
+
 ---
 ## Features
 
