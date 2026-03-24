@@ -18,7 +18,6 @@ It provides a simple, script‑based way to gather machine state data for diagno
 - Easy to integrate into larger automation or monitoring pipelines
 
 ---
-## Getting Started
 
 # Prerequisites
 - Python 3.8+
@@ -26,11 +25,11 @@ It provides a simple, script‑based way to gather machine state data for diagno
 
 # Running on Windows
 ```bash
-python WardenState_WindowsOS.py
+sudo python WardenState_WindowsOS.py
 ```
 Running on macOS
 ```bash
-python WardenState_MacOS.py
+sudo python WardenState_MacOS.py
 ```
 ---
 
