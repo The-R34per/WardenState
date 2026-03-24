@@ -27,7 +27,7 @@ It provides a simple, script‑based way to gather machine state data for diagno
 ```bash
 sudo python WardenState_WindowsOS.py
 ```
-Running on macOS
+# Running on macOS
 ```bash
 sudo python WardenState_MacOS.py
 ```
