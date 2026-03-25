@@ -28,24 +28,29 @@ class RedTeamDetector(FileSystemEventHandler):
 
 def get_command_output(cmd):
     try:
-        return subprocess.check_output(["powershell", "-Command", cmd], stderr=subprocess.DEVNULL).decode().strip()
-    except:
+        # FIX: Use shell=True for complex commands like netsh and reg query
+        return subprocess.check_output(cmd, shell=True, stderr=subprocess.DEVNULL, text=True).strip()
+    except subprocess.CalledProcessError as e:
+        # FIX: Return the error output for better debugging
+        return f"Error: {e.output.strip() if e.output else str(e)}"
+    except Exception:
         return "Unknown/Error"
 
 
 def get_windows_security_status():
     status = {}
 
-    av_check = get_command_output("(Get-MpComputerStatus).RealTimeProtectionEnabled")
+    av_check = get_command_output("powershell -Command \"(Get-MpComputerStatus).RealTimeProtectionEnabled\"")
     status["RealTimeProtection"] = "Enabled" if "True" in av_check else "Disabled"
 
-    fw_check = get_command_output("netsh advfirewall show allprofiles state")
+    # FIX: Use a more reliable way to check firewall status
+    fw_check = get_command_output("netsh advfirewall show allprofiles state | findstr State")
     status["Firewall"] = "Enabled" if "ON" in fw_check else "Disabled"
 
-    cloud_check = get_command_output("(Get-MpComputerStatus).IsCloudProtectionEnabled")
+    cloud_check = get_command_output("powershell -Command \"(Get-MpComputerStatus).IsCloudProtectionEnabled\"")
     status["CloudProtection"] = "Enabled" if "True" in cloud_check else "Disabled"
 
-    uac_check = get_command_output("reg query HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System /v ConsentPromptBehaviorAdmin")
+    uac_check = get_command_output("reg query \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\" /v ConsentPromptBehaviorAdmin")
     status["UAC_Strictness"] = "High" if "0x2" in uac_check or "0x1" in uac_check else "Low/Standard"
 
     return status
@@ -66,10 +71,10 @@ async def monitor_network():
                 addr_pair = (conn.laddr, conn.raddr)
                 if addr_pair not in initial_conns:
                     if conn.status == 'ESTABLISHED':
-                        proc.name()
+                        # FIX: Removed the erroneous proc.name() line
                         try:
                             proc = psutil.Process(conn.pid).name() if conn.pid else "Unknown"
-                        except:
+                        except (psutil.NoSuchProcess, psutil.AccessDenied):
                             proc = "System/Protected"
                         print(f"[!] NEW CONNECTION: {proc} ({conn.laddr} -> {conn.raddr})")
                     initial_conns.add(addr_pair)
@@ -96,7 +101,13 @@ async def start_file_monitor():
     observer = Observer()
     for path in WATCH_PATHS:
         if os.path.exists(path):
-            observer.schedule(event_handler, path, recursive=False)
+            try:
+                observer.schedule(event_handler, path, recursive=False)
+                print(f"[*] Monitoring: {path}")
+            except PermissionError:
+                print(f"[!] Permission denied for path: {path}")
+            except Exception as e:
+                print(f"[!] Error monitoring {path}: {e}")
 
     observer.start()
     print("[*] File System Watchdog Active...")
@@ -104,7 +115,9 @@ async def start_file_monitor():
     try:
         while True:
             await asyncio.sleep(1)
-    except Exception:
+    except KeyboardInterrupt:
+        # FIX: Only catch KeyboardInterrupt here, not all exceptions
+        print("\n[*] Stopping file monitor...")
         observer.stop()
     observer.join()
 
