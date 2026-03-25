@@ -23,7 +23,7 @@ class RedTeamDetector(FileSystemEventHandler):
         self.alert("CREATED (Persistence?!)", event.src_path)
 
     def alert(self, action, path):
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] 🚨 {action}: {path}")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] [!][!][!] {action}: {path}")
         print('\a')
 
 def get_command_output(cmd):
